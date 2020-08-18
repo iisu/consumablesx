@@ -101,42 +101,6 @@ for _, v in pairs(juice_types) do
 	end
 end
 
-minetest.register_craftitem(mod_name .. ":bucket_hot_chocolate", {
-	description = S("Bucket of Hot Chocolate"),
-	inventory_image = mod_name .. "_bucket_hot_chocolate.png",
-	stack_max = 1
-})
-
-local chocolate_eggs = { "easter_eggs:chocolate_egg", "easter_eggs:chocolate_egg_dark" }
-for _, v in pairs(chocolate_eggs) do
-	minetest.register_craft({
-		output = mod_name .. ":bucket_hot_chocolate",
-		recipe = {
-			{ v },
-			{ "bucket:bucket_lava" }
-		}
-	})
-end
-
-minetest.register_craft({
-	output = mod_name .. ":hot_chocolate",
-	recipe = {
-		{ "vessels:drinking_glass", "vessels:drinking_glass", "vessels:drinking_glass" },
-		{ "vessels:drinking_glass", mod_name .. ":bucket_hot_chocolate", "vessels:drinking_glass" },
-		{ "vessels:drinking_glass", "vessels:drinking_glass", "vessels:drinking_glass" }
-	},
-	replacements = {
-		{ "vessels:drinking_glass", mod_name .. ":hot_chocolate" },
-		{ "vessels:drinking_glass", mod_name .. ":hot_chocolate" },
-		{ "vessels:drinking_glass", mod_name .. ":hot_chocolate" },
-		{ mod_name .. ":bucket_hot_chocolate", "bucket:bucket_empty" },
-		{ "vessels:drinking_glass", mod_name .. ":hot_chocolate" },
-		{ "vessels:drinking_glass", mod_name .. ":hot_chocolate" },
-		{ "vessels:drinking_glass", mod_name .. ":hot_chocolate" },
-		{ "vessels:drinking_glass", mod_name .. ":hot_chocolate" }
-	}
-})
-
 local icecream_flavors = {
 	["default:cactus"] = "cactus",
 	["default:orange"] = "orange",
@@ -149,17 +113,33 @@ local icecream_flavors = {
 }
 
 --adding appropriate items to the flavors group
-for i, _ in pairs(icecream_flavors) do
-	local v = minetest.registered_items[i]
+local add_item_to_group = function (item, group)
+	local v = minetest.registered_items[item]
 	if v ~= nil then
 		local groups = v.groups
-		groups.icecream_flavor = 1
+		groups[group] = 1
 		
-		minetest.override_item(i, {
+		minetest.override_item(item, {
 			groups = groups
 		})
 	end
 end
+
+for i, _ in pairs(icecream_flavors) do
+	add_item_to_group(i, "icecream_flavor")
+end
+
+for _, v in pairs({ "easter_eggs:chocolate_egg", "easter_eggs:chocolate_egg_dark" }) do
+	add_item_to_group(v, "chocolate_egg")
+end
+
+minetest.register_craft({
+	output = mod_name .. ":hot_chocolate",
+	recipe = {
+		{ "group:chocolate_egg" },
+		{ "vessels:drinking_glass" }
+	}
+})
 
 minetest.register_craftitem(mod_name .. ":ice_cream", {
 	description = S("Ice Cream"),
@@ -170,8 +150,9 @@ minetest.register_craftitem(mod_name .. ":ice_cream", {
 minetest.register_craft({
 	output = mod_name .. ":ice_cream",
 	recipe = {
-		{ "group:icecream_flavor", "group:icecream_flavor", "group:icecream_flavor" },
-		{ "", "vessels:drinking_glass", "" }
+		{ "default:snow", "group:chocolate_egg", "default:snow" },
+		{ "default:snow", "group:icecream_flavor", "default:snow" },
+		{ "group:icecream_flavor", "vessels:drinking_glass", "group:icecream_flavor" }
 	}
 })
 
@@ -188,7 +169,11 @@ for _, v in pairs(icecream_flavors) do
 						mod_name .. "_icecream_cup.png",
 					groups = { vessel = 1, not_in_creative_inventory = 1 },
 					stack_max = 1,
-					on_use = minetest.item_eat(3, "vessels:drinking_glass")
+					on_use = function (itemstack, user, pointed_thing)
+						--apply status effect here
+						
+						return minetest.item_eat(3, "vessels:drinking_glass")(itemstack, user, pointed_thing)
+					end
 				})
 			end
 		end
@@ -198,9 +183,9 @@ end
 --selecting flavors in the crafting grid output
 local select_flavors = function (itemstack, player, old_craft_grid, craft_inv)
 	if itemstack:get_name() == mod_name .. ":ice_cream" then
-		local v = icecream_flavors[old_craft_grid[1]:get_name()]
-		local w = icecream_flavors[old_craft_grid[2]:get_name()]
-		local x = icecream_flavors[old_craft_grid[3]:get_name()]
+		local v = icecream_flavors[old_craft_grid[7]:get_name()]
+		local w = icecream_flavors[old_craft_grid[5]:get_name()]
+		local x = icecream_flavors[old_craft_grid[9]:get_name()]
 		if w == v or x == v or x == w then
 			--effectively disables crafting
 			itemstack:clear()
