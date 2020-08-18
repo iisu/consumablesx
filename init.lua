@@ -1,4 +1,4 @@
-local mod_name = consumablesx
+local mod_name = "consumablesx"
 
 --v.5.x translation
 local S
