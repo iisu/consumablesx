@@ -125,3 +125,78 @@ minetest.register_craft({
 		{ "vessels:drinking_glass", mod_name .. ":hot_chocolate" }
 	}
 })
+
+local icecream_flavors = {
+	["default:cactus"] = "cactus",
+	["default:orange"] = "orange",
+	["default:apple"] = "apple",
+	["farming:blueberries"] = "blueberry",
+	["farming:raspberries"] = "raspberry",
+	["farming:melon"] = "melon",
+	["easter_eggs:chocolate_egg"] = "chocolate",
+	["easter_eggs:chocolate_egg_dark"] = "chocolate"
+}
+
+--adding appropriate items to the flavors group
+for i, _ in pairs(icecream_flavors) do
+	local v = minetest.registered_items[i]
+	if v ~= nil then
+		local groups = v.groups
+		groups.icecream_flavor = 1
+		
+		minetest.override_item(i, {
+			groups = groups
+		})
+	end
+end
+
+minetest.register_craftitem(mod_name .. ":ice_cream", {
+	description = S("Ice Cream"),
+	inventory_image = mod_name .. "_icecream_cup.png",
+	stack_max = 1
+})
+
+minetest.register_craft({
+	output = mod_name .. ":ice_cream",
+	recipe = {
+		{ "group:icecream_flavor", "group:icecream_flavor", "group:icecream_flavor" },
+		{ "", "vessels:drinking_glass", "" }
+	}
+})
+
+--registering all the different kinds of ice cream
+for _, v in pairs(icecream_flavors) do
+	for _, w in pairs(icecream_flavors) do
+		for _, x in pairs(icecream_flavors) do
+			if w ~= v and x ~= v then
+				minetest.register_craftitem(mod_name .. ":ice_cream_" .. v .. "_" .. w .. "_" .. x, {
+					description = S(v .. ", " .. w .. " and " .. x .. " Ice Cream"),
+					inventory_image = mod_name .. "_icecream_" .. v .. "_left_ball.png^" ..
+						mod_name .. "_icecream_" .. w .. "_top_ball.png^" ..
+						mod_name .. "_icecream_" .. x .. "_right_ball.png^" ..
+						mod_name .. "_icecream_cup.png",
+					groups = { not_in_creative_inventory = 1 },
+					stack_max = 1
+				})
+			end
+		end
+	end
+end
+
+--selecting flavors in the crafting grid output
+local select_flavors = function(itemstack, player, old_craft_grid, craft_inv)
+	if itemstack:get_name() == mod_name .. ":ice_cream" then
+		local v = icecream_flavors[old_craft_grid[1]:get_name()]
+		local w = icecream_flavors[old_craft_grid[2]:get_name()]
+		local x = icecream_flavors[old_craft_grid[3]:get_name()]
+		if w == v or x == v or x == w then
+			--effectively disables crafting
+			itemstack:clear()
+		else
+			itemstack:set_name(mod_name .. ":ice_cream_" .. v .. "_" .. w .. "_" .. x)
+		end
+	end
+end
+
+minetest.register_craft_predict(select_flavors)
+minetest.register_on_craft(select_flavors)
