@@ -5,14 +5,14 @@ local S
 if minetest.get_translator ~= nil then
 	S = minetest.get_translator(mod_name)
 else
-	S = function(s)
+	S = function (s)
 		return s
 	end
 end
 
 minetest.override_item("vessels:drinking_glass", {
 	liquids_pointable = true,
-	--modified bucket_empty.on_use from https://github.com/minetest/minetest_game/blob/master/mods/bucket/init.lua
+	--modified code from buckets:bucket_empty's on_use, https://github.com/minetest/minetest_game/blob/master/mods/bucket/init.lua
 	on_use = function (itemstack, user, pointed_thing)
 		if pointed_thing.type == "object" then
 			pointed_thing.ref:punch(user, 1.0, { full_punch_interval=1.0 }, nil)
@@ -66,16 +66,27 @@ local juice_types = {
 	{ name = "raspberry_juice",	desc = "Raspberry Juice",	hp = 2,	crafted_from = "farming:raspberries" },
 	{ name = "melon_juice",		desc = "Melon Juice",		hp = 2,	crafted_from = "farming:melon" },
 	{ name = "pine_needle_tea",	desc = "Pine Needle Tea",	hp = 2,	crafted_from = "default:pine_needles" },
-	{ name = "hot_chocolate",	desc = "Hot Chocolate",		hp = 5 }
+	{ name = "hot_chocolate",	desc = "Hot Chocolate",		hp = 5, status_effect = function (itemstack, user, pointed_thing)
+		--apply status effect here
+		
+		return
+	end }
 }
 
+--registering the drinks
 for _, v in pairs(juice_types) do
 	minetest.register_craftitem(mod_name .. ":" .. v.name, {
 		description = S(v.desc),
-		groups = { cup = 1 },
+		groups = { vessel = 1, drink = 1 },
 		inventory_image = mod_name .. "_" .. v.name .. ".png",
 		stack_max = 1,
-		on_use = minetest.item_eat(v.hp, "vessels:drinking_glass")
+		on_use = function (itemstack, user, pointed_thing)
+			if v.status_effect ~= nil then
+				v.status_effect(itemstack, user, pointed_thing)
+			end
+			
+			return minetest.item_eat(v.hp, "vessels:drinking_glass")(itemstack, user, pointed_thing)
+		end
 	})
 	
 	if v.crafted_from ~= nil then
@@ -175,8 +186,9 @@ for _, v in pairs(icecream_flavors) do
 						mod_name .. "_icecream_" .. w .. "_top_ball.png^" ..
 						mod_name .. "_icecream_" .. x .. "_right_ball.png^" ..
 						mod_name .. "_icecream_cup.png",
-					groups = { not_in_creative_inventory = 1 },
-					stack_max = 1
+					groups = { vessel = 1, not_in_creative_inventory = 1 },
+					stack_max = 1,
+					on_use = minetest.item_eat(3, "vessels:drinking_glass")
 				})
 			end
 		end
@@ -184,7 +196,7 @@ for _, v in pairs(icecream_flavors) do
 end
 
 --selecting flavors in the crafting grid output
-local select_flavors = function(itemstack, player, old_craft_grid, craft_inv)
+local select_flavors = function (itemstack, player, old_craft_grid, craft_inv)
 	if itemstack:get_name() == mod_name .. ":ice_cream" then
 		local v = icecream_flavors[old_craft_grid[1]:get_name()]
 		local w = icecream_flavors[old_craft_grid[2]:get_name()]
