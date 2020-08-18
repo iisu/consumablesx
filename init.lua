@@ -143,7 +143,7 @@ minetest.register_craft({
 
 minetest.register_craftitem(mod_name .. ":ice_cream", {
 	description = S("Ice Cream"),
-	inventory_image = mod_name .. "_icecream_cup.png",
+	inventory_image = mod_name .. "_icecream.png",
 	stack_max = 1
 })
 
